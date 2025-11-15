@@ -1,0 +1,6 @@
+runs/
+outputs/
+dataset/
+*.zip
+*.pt
+pdfs-20251115T111116Z-1-001/

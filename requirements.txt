@@ -1,0 +1,9 @@
+ultralytics>=8.1.0
+pymupdf>=1.24.0
+opencv-python>=4.10.0,<4.11.0
+numpy>=1.26.0,<2.0
+pillow>=10.3.0
+tqdm>=4.66.0
+pyyaml>=6.0.0
+streamlit>=1.37.0
+rich>=13.7.0

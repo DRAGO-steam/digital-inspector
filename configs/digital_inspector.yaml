@@ -1,0 +1,9 @@
+# Ultralytics data config for Digital Inspector
+path: ../dataset
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: signature
+  1: stamp
+  2: qr
