@@ -169,6 +169,7 @@ def process_document(
     for page_idx, page_img in pages:
         annotated_bgr, detections = run_detection(model, page_img, conf, iou)
         annotated_rgb = cv2.cvtColor(annotated_bgr, cv2.COLOR_BGR2RGB)
+        height, width = page_img.shape[:2]
         for det in detections:
             doc_class_totals[det["category"]] += 1
 
@@ -181,6 +182,7 @@ def process_document(
             "detections": detections,
             "image_path": image_path.as_posix(),
             "annotated_rgb": annotated_rgb,
+            "page_size": {"width": width, "height": height},
         }
         doc_pages.append(page_info)
         doc_pages_json.append({k: v for k, v in page_info.items() if k != "annotated_rgb"})
@@ -193,13 +195,38 @@ def process_document(
             }
         )
 
-    doc_payload = {
-        "document": doc_name,
-        "pages": doc_pages_json,
-        "class_totals": dict(doc_class_totals),
-    }
-    doc_json_path = doc_dir / f"{sanitize(doc_name)}_detections.json"
-    doc_json_path.write_text(json.dumps(doc_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    formatted_doc: Dict[str, Dict] = {}
+    annotation_counter = 1
+    for page in doc_pages_json:
+        page_key = f"page_{page['page']}"
+        page_size = page.get("page_size", {})
+        annotations_payload: List[Dict[str, Dict]] = []
+        for det in page["detections"]:
+            x1, y1, x2, y2 = det["bbox"]
+            bbox_width = max(0.0, x2 - x1)
+            bbox_height = max(0.0, y2 - y1)
+            area = bbox_width * bbox_height
+            annotation_id = f"annotation_{annotation_counter}"
+            annotation_counter += 1
+            annotations_payload.append(
+                {
+                    annotation_id:
+                        {
+                            "category": det["category"],
+                            "bbox": {
+                                "x": x1,
+                                "y": y1,
+                                "width": bbox_width,
+                                "height": bbox_height,
+                            },
+                            "area": area,
+                        }
+                }
+            )
+        formatted_doc[page_key] = {
+            "annotations": annotations_payload,
+            "page_size": page_size,
+        }
 
     result.update(
         {
@@ -207,8 +234,8 @@ def process_document(
             "class_totals": dict(doc_class_totals),
             "per_page": per_page_records,
             "total_detections": sum(len(page["detections"]) for page in doc_pages),
-            "json_path": doc_json_path,
             "state_id": f"{upload_idx}_{sanitize(doc_name)}",
+            "formatted_annotations": formatted_doc,
         }
     )
     return result
@@ -264,12 +291,19 @@ def process_batch(
             for cls_name, count in result["class_totals"].items():
                 summary_counts[cls_name] += count
 
+    session_annotations = {
+        doc["name"]: doc.get("formatted_annotations", {}) for doc in doc_results
+    }
+    summary_json_path = session_dir / "detections_summary.json"
+    summary_json_path.write_text(json.dumps(session_annotations, ensure_ascii=False, indent=2), encoding="utf-8")
+
     return {
         "doc_results": doc_results,
         "per_page_records": per_page_records,
         "summary_counts": dict(summary_counts),
         "errors": errors,
         "session_dir": session_dir.as_posix(),
+        "summary_json": summary_json_path.as_posix(),
     }
 
 
@@ -384,6 +418,16 @@ def main() -> None:
     session_dir = Path(results_bundle["session_dir"])
 
     st.success("Detection complete.")
+    summary_json_path = results_bundle.get("summary_json")
+    if summary_json_path:
+        summary_path = Path(summary_json_path)
+        if summary_path.exists():
+            st.download_button(
+                "Download consolidated detections JSON",
+                data=summary_path.read_bytes(),
+                file_name=summary_path.name,
+                mime="application/json",
+            )
 
     sort_choice = st.radio(
         "Sort document rows",
