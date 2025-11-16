@@ -1,8 +1,10 @@
-runs/
+runs/detect/digital_inspector/
+runs/detect/digital_inspector_v8s_1536/
+runs/detect/digital_inspector_v8s_archive/
 outputs/
 dataset/
-*.zip
-*.pt
+/*.zip
+/*.pt
 pdfs-20251115T111116Z-1-001/
 __pycache__/
 archive(1)/
