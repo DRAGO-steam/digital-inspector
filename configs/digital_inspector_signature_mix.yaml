@@ -1,0 +1,15 @@
+# Combined dataset config that mixes the PDF-derived set with archive(1) signatures
+path: .
+train:
+  - dataset/images/train
+  - dataset_archive_signatures/images/train
+val:
+  - dataset/images/val
+  - dataset_archive_signatures/images/val
+test:
+  - dataset/images/test
+  - dataset_archive_signatures/images/test
+names:
+  0: signature
+  1: stamp
+  2: qr

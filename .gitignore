@@ -4,3 +4,6 @@ dataset/
 *.zip
 *.pt
 pdfs-20251115T111116Z-1-001/
+__pycache__/
+archive(1)/
+dataset_archive_signatures/

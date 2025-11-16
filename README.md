@@ -68,6 +68,21 @@ python src/train.py \
 
 Outputs land in `runs/detect/digital_inspector` (best + last checkpoints, metrics, PR/mAP curves). Adjust `--model` to `yolov8s.pt` if GPU budget allows.
 
+Need to keep training `digital_inspector_v8s` but emphasize signatures? Reuse the best checkpoint as a starting point while pointing Ultralytics to the mixed dataset config that concatenates the PDF-derived set with the archive signatures:
+
+```powershell
+python src/train.py \
+  --data configs/digital_inspector_signature_mix.yaml \
+  --model runs/detect/digital_inspector_v8s/weights/best.pt \
+  --epochs 40 \
+  --imgsz 1536 \
+  --batch 8 \
+  --device 0 \
+  --name digital_inspector_v8s_archive
+```
+
+This keeps the original stamp/QR classes intact (the head still has three outputs) while injecting hundreds of extra signature examples, which helps push recall without catastrophic forgetting. Consider shortening `patience` (default 20) once loss plateaus to keep the warm restart snappy.
+
 ## 3️⃣ Inference & visualization
 
 Generate annotated images plus structured JSON predictions for any folder, image, or PDF.
